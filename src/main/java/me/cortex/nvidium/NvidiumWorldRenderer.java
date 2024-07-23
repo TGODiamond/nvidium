@@ -3,6 +3,7 @@ package me.cortex.nvidium;
 import me.cortex.nvidium.gl.RenderDevice;
 import me.cortex.nvidium.managers.AsyncOcclusionTracker;
 import me.cortex.nvidium.managers.SectionManager;
+import me.cortex.nvidium.sodiumCompat.NvidiumCompactChunkVertex;
 import me.cortex.nvidium.util.DownloadTaskStream;
 import me.cortex.nvidium.util.UploadingBufferStream;
 import me.jellysquid.mods.sodium.client.SodiumClientMod;
@@ -14,6 +15,8 @@ import me.jellysquid.mods.sodium.client.render.viewport.Viewport;
 import net.minecraft.client.render.Camera;
 import net.minecraft.client.texture.Sprite;
 import org.jetbrains.annotations.Nullable;
+import org.joml.Matrix4fc;
+import org.joml.Matrix4x3fc;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -48,7 +51,7 @@ public class NvidiumWorldRenderer {
 
         update_allowed_memory();
         //this.sectionManager = new SectionManager(device, max_geometry_memory*1024*1024, uploadStream, 150, 24, CompactChunkVertex.STRIDE);
-        this.sectionManager = new SectionManager(device, max_geometry_memory*1024*1024, uploadStream, CompactChunkVertex.STRIDE, this);
+        this.sectionManager = new SectionManager(device, max_geometry_memory*1024*1024, uploadStream, NvidiumCompactChunkVertex.STRIDE, this);
         this.renderPipeline = new RenderPipeline(device, uploadStream, downloadStream, sectionManager);
 
 
@@ -102,15 +105,18 @@ public class NvidiumWorldRenderer {
 
     public void addDebugInfo(ArrayList<String> debugInfo) {
         debugInfo.add("Using nvidium renderer: "+ Nvidium.MOD_VERSION);
+        /*
         debugInfo.add("Memory limit: " + max_geometry_memory + " MB");
-        debugInfo.add("Terrain Memory MB: " + sectionManager.terrainAreana.getAllocatedMB()+(Nvidium.SUPPORTS_PERSISTENT_SPARSE_ADDRESSABLE_BUFFER?"":" (fallback mode)"));
+        debugInfo.add("Terrain Memory MB: " +);
         debugInfo.add(String.format("Fragmentation: %.2f", sectionManager.terrainAreana.getFragmentation()*100));
         debugInfo.add("Regions: " + sectionManager.getRegionManager().regionCount() + "/" + sectionManager.getRegionManager().maxRegions());
-        if (asyncChunkTracker != null) {
-            debugInfo.add("Async BFS iteration time: " + asyncChunkTracker.getIterationTime());
-            debugInfo.add("Build queue sizes: " + Arrays.toString(this.asyncChunkTracker.getBuildQueueSizes()));
+         */
+        debugInfo.add("Mem" + (Nvidium.SUPPORTS_PERSISTENT_SPARSE_ADDRESSABLE_BUFFER?"":" (fallback)") + ": " + this.sectionManager.terrainAreana.getAllocatedMB() + "/"+ this.max_geometry_memory + String.format(", F: %.2f", sectionManager.terrainAreana.getFragmentation()*100));
+        debugInfo.add("Regions: " + sectionManager.getRegionManager().regionCount() + "/" + sectionManager.getRegionManager().maxRegions());
+        if (this.asyncChunkTracker != null) {
+            debugInfo.add("A-BFS: " + asyncChunkTracker.getIterationTime() + " Q: " + Arrays.toString(this.asyncChunkTracker.getBuildQueueSizes()));//Async BFS iteration time:, Build queue sizes:
         }
-        renderPipeline.addDebugInfo(debugInfo);
+        this.renderPipeline.addDebugInfo(debugInfo);
     }
 
 
@@ -157,5 +163,13 @@ public class NvidiumWorldRenderer {
         } else {
             return new Sprite[0];
         }
+    }
+
+    public void setTransformation(int id, Matrix4fc transform) {
+        this.renderPipeline.setTransformation(id, transform);
+    }
+
+    public void setOrigin(int id, int x, int y, int z) {
+        this.renderPipeline.setOrigin(id, x, y, z);
     }
 }

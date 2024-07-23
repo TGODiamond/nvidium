@@ -20,6 +20,8 @@ layout(triangles, max_vertices=8, max_primitives=12) out;
 taskNV in Task {
     uint32_t _visOutBase;//Base output visibility index
     uint32_t _offset;
+    mat4 regionTransform;
+    ivec3 chunkShift;
 };
 
 const uint PILUTA[] = {0, 3, 6, 0, 1, 7, 4, 5};
@@ -70,13 +72,13 @@ void main() {
     chunk.y <<= 32-9;
     chunk.y >>= 32-9;
 
-    ivec3 relativeChunkPos = (chunk - chunkPosition.xyz);
+    ivec3 relativeChunkPos = (chunk + chunkShift);
     vec3 corner = vec3(relativeChunkPos<<4);
     vec3 cornerCopy = corner;
 
     //TODO: try mix instead or something other than just ternaries, i think they get compiled to a cmov type instruction but not sure
     corner += vec3(((gl_LocalInvocationID.x&1)==0)?mins.x:maxs.x, ((gl_LocalInvocationID.x&4)==0)?mins.y:maxs.y, ((gl_LocalInvocationID.x&2)==0)?mins.z:maxs.z);
-    gl_MeshVerticesNV[gl_LocalInvocationID.x].gl_Position = (MVP*vec4(corner, 1.0));
+    gl_MeshVerticesNV[gl_LocalInvocationID.x].gl_Position = (MVP*(regionTransform*vec4(corner, 1.0)));
 
     int prim_payload = (visibilityIndex<<8)|int(((uint(lastData))<<1)&0xff)|1;
 
